@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const divCommands = document.querySelector('.commands' );
   const btnStartGame = document.querySelector('.start-game' );
-  const divChips = document.querySelector('.chips' );
+  // const divChips = document.querySelector('.chips' );
 
   printPlayers();
   
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     }
 
-    divChips.classList.remove('hidden');
+    // divChips.classList.remove('hidden');
   });
 
   // btnStartGame.parentElement.removeChild(btnStartGame);
@@ -41,17 +41,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
   function addActionButtons(divCommands) {
+    
     // btnFold
     const btnFold = document.createElement('button');
     btnFold.textContent = "Fold";
     btnFold.classList.add('action-button', 'fold');
     btnFold.addEventListener('click', fold);
 
+    // btnCheck
+    const btnCheck = document.createElement('button');
+    btnCheck.textContent = "Check";
+    btnCheck.classList.add('action-button','check');
+    btnCheck.addEventListener('click', check);
+
     // btnCall
     const btnCall = document.createElement('button');
     btnCall.textContent = "Call";
     btnCall.classList.add('action-button','call');
     btnCall.addEventListener('click', call);
+
+    // btnBet
+    const btnBet = document.createElement('button');
+    btnBet.textContent = "Bet";
+    btnBet.classList.add('action-button','bet');
+    btnBet.addEventListener('click', bet);
 
     // btnRaise
     const btnRaise = document.createElement('button');
@@ -60,7 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btnRaise.addEventListener('click', raise);
 
     divCommands.appendChild(btnFold);
+    divCommands.appendChild(btnCheck);
     divCommands.appendChild(btnCall);
+    divCommands.appendChild(btnBet);
     divCommands.appendChild(btnRaise);
   }
 
@@ -109,9 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentPhase = GAME_PHASE.PRE_FLOP;
   const BIG_BLIND_SIZE = 20;
   let potSize = 0;
-  let dealerPosition = 1;
 
+  let dealerPosition = 1;
   let currentPlayer;
+  
+  let gameActions = [];
 
   const players = [
     {
@@ -126,33 +143,44 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     // {
     //   seat: 3,
+    //   stack: 2000,
     //   cards: []
     // },
-    // {
-    //   seat: 4,
-    //   cards: []
-    // },
-    // {
-    //   seat: 5,
-    //   cards: []
-    // },
+    {
+      seat: 4,
+      stack: 2000,
+      cards: []
+    },
+    {
+      seat: 5,
+      stack: 2000,
+      cards: []
+    },
     // {
     //   seat: 6,
+    //   stack: 2000,
     //   cards: []
     // },
     // {
     //   seat: 7,
+    //   stack: 2000,
     //   cards: []
     // },
     // {
     //   seat: 8,
+    //   stack: 2000,
     //   cards: []
     // },
-    // {
-    //   seat: 9,
-    //   cards: []
-    // }
+    {
+      seat: 9,
+      stack: 2000,
+      cards: []
+    }
   ];
+
+  players.sort((p1,p2) => p1.seat < p2.seat);
+  
+  setNextPlayer();
 
   const score = {
     HIGH_CARD: 0,
@@ -170,14 +198,21 @@ document.addEventListener('DOMContentLoaded', () => {
   function fold() {
     console.log('You Folded');
   }
-   function call() {
+  function check() {
+    console.log('You Check');
+  }
+  function call() {
     console.log('You Call');
   }
-   function raise() {
+  function raise() {
     console.log('You Raised');
   }
 
-  function getWinner(cardsA, cardsB) {
+
+  function getWinner(playerA, playerB) {
+
+    const cardsA = playerA.cards.concat(board);
+    const cardsB = playerB.cards.concat(board);
 
     const scoreA = evaluateScore(cardsA);
     const scoreB = evaluateScore(cardsB);
@@ -186,11 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         isDraw: false,
         winner: {
+          player: scoreA > scoreB ? playerA : playerB,
           position: scoreA > scoreB ? 1 : 2,
           cards: scoreA > scoreB ? cardsA : cardsB,
           score: Math.max(scoreA, scoreB)
         }, 
         loser: {
+          player: scoreA < scoreB ? playerA : playerB,
           position: scoreA < scoreB ? 1 : 2,
           cards: scoreA < scoreB ? cardsA : cardsB,
           score: Math.min(scoreA, scoreB)
@@ -254,12 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         isDraw: false,
         winner: {
+          player: subScoreA > subScoreB ? playerA : playerB,
           position: subScoreA > subScoreB ? 1 : 2,
           cards: subScoreA > subScoreB ? cardsA : cardsB,
           score: scoreA,
           subScore: Math.max(subScoreA, subScoreB)
         }, 
         loser: {
+          player: subScoreA < subScoreB ? playerA : playerB,
           position: subScoreA < subScoreB ? 1 : 2,
           cards: subScoreA < subScoreB ? cardsA : cardsB,
           score: scoreA,
@@ -358,6 +397,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!isStraightFlush)
       cards = makeMod13(cards);
+
+    cards = sortNum(cards);
 
     const tempCards = [];
     tempCards.push(cards[0]);
@@ -815,6 +856,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function initialize() {
     if (currentPhase != GAME_PHASE.PRE_FLOP) return;
 
+    potSize = 0;
+
     prepareDeck(); 
     emptyPlayers();
     emptyBoard();
@@ -889,46 +932,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showdown() {
 
-    const heroCombo = players[0].cards.concat(board);
-    const villainCombo = players[1].cards.concat(board);
-    const winnerStats = getWinner(heroCombo, villainCombo);
+    let winningPlayers = [];
 
-      let outputLabel;
+    let maxScore = 0;
+    let maxSubscore = 0;
 
+    for (let i = 0; i < players.length - 1; i++) {
+
+      if (winningPlayers.length == 0) winningPlayers.push(players[i]);
+      const last = winningPlayers[winningPlayers.length - 1];
+
+      const current = players[i + 1];
+      const winnerStats = getWinner(last, current);
+      
       if (winnerStats.isDraw) {
-        outputLabel = 'draw';
-        for(s in score) {
-        if (score[s] === winnerStats.score)
-          outputLabel += "\nWinner: " + s.toString();
-        }
+        winningPlayers.push(current);
       }
       else {
-        outputLabel = winnerStats.winner.position == 1 ? 'hero wins' : 'villain wins';
+        maxScore = winnerStats.winner.score;
+        maxSubscore = winnerStats.winner.subScore;
+        if (winnerStats.winner.player.seat == current.seat) {
+          winningPlayers = [current];
+        }
+      }     
 
-        let punteggioWinner;
-        for(s in score) {
-          if (score[s] === winnerStats.winner.score)
-            punteggioWinner = s.toString();
-        }
-        outputLabel += "\nWinner: " + punteggioWinner;
+    }
+
+    let outputLabel = "Winner(s): " + winningPlayers.map(p => 'Seat-'+p.seat).join(' ');
+    outputLabel = outputLabel.replace('Seat-1', 'Hero');
+    let punteggioWinner;
+    for(s in score) {
+      if (score[s] === maxScore)
+        punteggioWinner = s.toString();
+    }
+    outputLabel += "\nPunteggio: " + punteggioWinner;
+    alert(outputLabel);
+
+
+    // const heroCombo = players[0].cards.concat(board);
+    // const villainCombo = players[1].cards.concat(board);
+    // const winnerStats = getWinner(heroCombo, villainCombo);
+
+    //   let outputLabel;
+
+    //   if (winnerStats.isDraw) {
+    //     outputLabel = 'draw';
+    //     for(s in score) {
+    //     if (score[s] === winnerStats.score)
+    //       outputLabel += "\nWinner: " + s.toString();
+    //     }
+    //   }
+    //   else {
+    //     outputLabel = winnerStats.winner.position == 1 ? 'hero wins' : 'villain wins';
+
+    //     let punteggioWinner;
+    //     for(s in score) {
+    //       if (score[s] === winnerStats.winner.score)
+    //         punteggioWinner = s.toString();
+    //     }
+    //     outputLabel += "\nWinner: " + punteggioWinner;
   
-        let punteggioLoser;
-        for(s in score) {
-          if (score[s] === winnerStats.loser.score)
-            punteggioLoser = s.toString();
-        }
-        outputLabel += "\nLoser: " + punteggioLoser;
-      }
+    //     let punteggioLoser;
+    //     for(s in score) {
+    //       if (score[s] === winnerStats.loser.score)
+    //         punteggioLoser = s.toString();
+    //     }
+    //     outputLabel += "\nLoser: " + punteggioLoser;
+    //   }
       
-      let i = 0;
-      players.forEach(p => {
-        if (p.seat == heroSeat) 
-          return;
-        setTimeout(() => {
-          showCards(p.seat);
-          setTimeout(() => { alert(outputLabel); }, 200);
-        }, 1000 * i++);
-      });
+    //   let i = 0;
+    //   players.forEach(p => {
+    //     if (p.seat == heroSeat) 
+    //       return;
+    //     setTimeout(() => {
+    //       showCards(p.seat);
+    //       setTimeout(() => { alert(outputLabel); }, 200);
+    //     }, 1000 * i++);
+    //   });
   }
 
   function emptyBoard() {
@@ -965,9 +1045,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pAction.classList.add('player-action');
 
         if (player.seat == heroSeat) {
-          pAction.innerHTML = '<div class="player-name hero">Hero</div><div class="player-bet">Bet 100€</div>';
+          pAction.innerHTML = '<div class="player-name hero">Hero</div><div class="player-bet hidden"></div>';
         } else {
-          pAction.innerHTML = '<div class="player-name">Player ' + (index+1) + '</div><div class="player-bet">Bet 100€</div>';
+          pAction.innerHTML = '<div class="player-name">Player ' + (index+1) + '</div><div class="player-bet hidden"></div>';
         }
 
         p.appendChild(pAction);
@@ -1014,38 +1094,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function placeBlinds() {
+  function setNextPlayer() {
+    if (currentPlayer == null) currentPlayer = players.find(p => p.seat == dealerPosition);
 
-   let sbPos, bbPos;
-   players.forEach(p => {
-     if (p.seat == dealerPosition && p.seat < players.length - 1) {
-       sbPos = p.seat+1;
-       bbPos = p.seat+2;
-       return false;
-     } else if (p.seat == dealerPosition && p.seat < players.length) {
-      sbPos = p.seat+1;
-      bbPos = 1;
-      return false;
-     } else if (p.seat == dealerPosition && p.seat == players.length) {
-       sbPos = 1;
-      bbPos = 2;
-      return false;
-     }
-   });
+    const index = players.findIndex(p => {
+      return p.seat === currentPlayer.seat;
+    });
 
-   let sbPlayer = players.find(p => p.seat == sbPos);
-   bet(sbPlayer, BIG_BLIND_SIZE / 2);
+    if (index == players.length - 1) {
+      currentPlayer = players[0];
 
-   let bbPlayer = players.find(p => p.seat == bbPos);
-   bet(bbPlayer, BIG_BLIND_SIZE);
+    } else {
+      currentPlayer =  players[index + 1];
+    }
 
-   currentPlayer = bbPos == players.length ? 1 : bbPos+1;
+    // let currentPlayerSeat = currentPlayer.seat == players.length ? 1 : currentPlayer.seat+1;
+    // currentPlayer = players.find(p => p.seat == currentPlayerSeat);
   }
 
-  function bet(player, amount) {    
+  function placeBlinds() {
+
+  //  let sbPos, bbPos;
+  //  players.forEach(p => {
+  //    if (p.seat == dealerPosition && p.seat < players.length - 1) {
+  //      sbPos = p.seat+1;
+  //      bbPos = p.seat+2;
+  //      return false;
+  //    } else if (p.seat == dealerPosition && p.seat < players.length) {
+  //     sbPos = p.seat+1;
+  //     bbPos = 1;
+  //     return false;
+  //    } else if (p.seat == dealerPosition && p.seat == players.length) {
+  //      sbPos = 1;
+  //     bbPos = 2;
+  //     return false;
+  //    }
+  //  });
+
+   bet(BIG_BLIND_SIZE / 2);
+   bet(BIG_BLIND_SIZE);
+
+  //  let sbPlayer = players.find(p => p.seat == sbPos);
+  //  bet(sbPlayer, BIG_BLIND_SIZE / 2);
+
+  //  let bbPlayer = players.find(p => p.seat == bbPos);
+  //  bet(bbPlayer, BIG_BLIND_SIZE);
+
+  //  let currentPlayerSeat = bbPos == players.length ? 1 : bbPos+1;
+  //  currentPlayer = players.find(p => p.seat == currentPlayerSeat);
+  }
+
+  function bet(amount) { 
+
+    let player = currentPlayer;
+
+    if (player.stack <= 0) return;
+    let betLabel = "Bet";
+    if (amount >= player.stack) betLabel = "All In";
+
     let betSize = Math.min(player.stack, amount);
     player.stack -= betSize;
     potSize += betSize;
+
+    const divBet = document.querySelector('.seat.s' +player.seat + ' .player-bet' );    
+    divBet.classList.remove('hidden');
+    divBet.innerHTML = betLabel + " " + betSize + "€";
+
+    const divPot = document.querySelector('.pot .amount');   
+    divPot.textContent = potSize || '0'; 
+
+    setNextPlayer();
+    // let currentPlayerSeat = player.seat == players.length ? 1 : player.seat+1;
+    // currentPlayer = players.find(p => p.seat == currentPlayerSeat);
   }
 
   function distributeCards() {
@@ -1074,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const playerElement = document.querySelector('.player.p'+player.seat + ' .player-cards');
       const cardElement = getCardElement(cardIndex);
       if (player.seat != heroSeat) {
-        cardElement.classList.add('covered');
+        // cardElement.classList.add('covered');
       }
       playerElement.appendChild(cardElement);
     }

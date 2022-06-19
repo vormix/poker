@@ -132,14 +132,14 @@ body {
   display: flex;
   flex-wrap: wrap;
   height: 15vh;
-  width: 35vh;
+  /* width: 35vh; */
   
 }
 .turn, .river {
   display: flex;
   flex-wrap: wrap;
   height: 15vh;
-  width: 15vh;
+  /* width: 15vh; */
 }
 
 .card {
@@ -197,16 +197,31 @@ body {
     width: 35vh;
     height: 10vh;
     position: absolute;
-    top: 24vh;
+    top: 31vh;
 }
 
-.bet .chip {
+.chips {
+  height: 7vh;
+}
+
+.chip {
     width: 7vh;
     height: 7vh;
     position: absolute;
 }
-.bet .chip.black {left: 0;}
-.bet .chip.blue {left: 2vh; z-index: 1;}
-.bet .chip.green {left: 4vh; z-index: 2;}
-.bet .chip.red {left: 6vh; z-index: 3;}
-.bet .chip.white {left: 8vh; z-index: 4;}
+.chip.black {left: 0;}
+.chip.blue {left: 2vh; z-index: 1;}
+.chip.green {left: 4vh; z-index: 2;}
+.chip.red {left: 6vh; z-index: 3;}
+.chip.white {left: 8vh; z-index: 4;}
+
+.pot-size { 
+  height: 3vh;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-family: sans-serif;
+  font-size: 2.7vh;
+  background-color: #0053ff; 
+  color: white;
+}
